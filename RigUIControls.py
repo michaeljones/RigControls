@@ -16,11 +16,13 @@ from ControlItems import *
 from Widgets import *
 from RigStore import *
 
+from rigcontrols.undo import CommandGroup, SetAttrCommand, AppendCommand, AddItemCommand
+
 ############################ MAIN RIG GRAPHICS VIEW #################################################################################
 
 class RigGraphicsView(QtGui.QGraphicsView):
 
-    def __init__(self, mainWindow, messageLogger, styleData, itemFactory, controlScaler):
+    def __init__(self, mainWindow, messageLogger, styleData, itemFactory, undoStack, controlScaler):
 
         QtGui.QGraphicsView.__init__(self) 
         self.width = 600
@@ -31,6 +33,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.messageLogger = messageLogger
         self.styleData = styleData
         self.itemFactory = itemFactory
+        self.undoStack = undoStack
 
         policy = QtCore.Qt.ScrollBarAlwaysOff
         self.setVerticalScrollBarPolicy(policy)
@@ -522,10 +525,16 @@ class RigGraphicsView(QtGui.QGraphicsView):
             item.setPos(self.mapToScene(event.pos()))
             item.setScale(self.markerScale)
             item.setAlpha(0.5)
-            self.markerList.append(item) #Add Item to the main Marker list
-            self.scene().addItem(item)
-            self.dragItem = item #set set the gv DragItem
-            self.markerCount += 1
+
+            # Create command for the undo stack
+            command = CommandGroup(
+                    AppendCommand(self.markerList, item),
+                    AddItemCommand(self.scene(), item),
+                    SetAttrCommand(self, "dragItem", item),
+                    SetAttrCommand(self, "markerCount", self.markerCount + 1)
+                    )
+
+            self.undoStack.dispatch(command)
 
     def dragConstraintItem(self, event, data):
             event.acceptProposedAction()

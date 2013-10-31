@@ -9,6 +9,7 @@ import os
 
 from RigStore import FaceGVCapture
 from Widgets import ControlScale
+from rigcontrols.undo import UndoStack
 
 import RigUIControls as rig
 
@@ -59,7 +60,7 @@ class RigFaceSetup(QtGui.QMainWindow):
     Tabs on the areas that they are allowed to dock.
 
     """
-    def __init__(self, styleData):
+    def __init__(self, styleData, undoStack):
         super(RigFaceSetup, self).__init__()
 
         self.setWindowTitle("Facial Rig Builder v1.0")
@@ -68,6 +69,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.faceSaveFile = None
         self.skinTableWidget = None
         self.styleData = styleData
+        self.undoStack = undoStack
         self.initUI()
 
     def initUI(self):   
@@ -95,6 +97,7 @@ class RigFaceSetup(QtGui.QMainWindow):
                 self.messageLogger,
                 self.styleData,
                 itemFactory,
+                self.undoStack,
                 self.controlScale
                 )
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
@@ -163,6 +166,17 @@ class RigFaceSetup(QtGui.QMainWindow):
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(QtGui.qApp.quit)
 
+        # Edit Menu
+        undoAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Undo', self)        
+        undoAction.setShortcut('Ctrl+Z')
+        undoAction.setStatusTip('Undo last action')
+        undoAction.triggered.connect(self.undoAction)
+
+        redoAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Redo', self)        
+        redoAction.setShortcut('Ctrl+Shift+Z')
+        redoAction.setStatusTip('Redo last undone action')
+        redoAction.triggered.connect(self.redoAction)
+
         # View Menu
         showMarkers = QtGui.QAction('Show Markers', self)  
         showMarkers.setCheckable(True)
@@ -196,6 +210,10 @@ class RigFaceSetup(QtGui.QMainWindow):
         fileMenu.addAction(saveFace)
         fileMenu.addAction(saveFaceAs)
         fileMenu.addAction(exitAction)
+
+        editMenu = menubar.addMenu('&Edit')
+        editMenu.addAction(undoAction)
+        editMenu.addAction(redoAction)
 
         viewMenu = menubar.addMenu('&View')
         viewMenu.addAction(showMarkers)
@@ -413,6 +431,14 @@ class RigFaceSetup(QtGui.QMainWindow):
         """Function that simply calls the skinning table to update"""
         self.skinTableWidget.updateSkinning(item)
 
+    def undoAction(self):
+
+        self.undoStack.undo()
+
+    def redoAction(self):
+
+        self.undoStack.redo()
+
     def itemTest(self):
         """Random Test funciton to see if things get called"""
         print "moo"
@@ -429,9 +455,11 @@ def main():
         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
         return 1
 
+    undoStack = UndoStack()
+
     app = QtGui.QApplication([])
     app.setStyle('Plastique')
-    ex = RigFaceSetup(styleData)
+    ex = RigFaceSetup(styleData, undoStack)
     ex.show()
     app.exec_()
 
