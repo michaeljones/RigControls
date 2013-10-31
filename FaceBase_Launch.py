@@ -9,7 +9,7 @@ import os
 
 from RigStore import FaceGVCapture
 from Widgets import ControlScale
-from rigcontrols.undo import UndoStack
+from rigcontrols.undo import UndoStack, NothingToRedoError, NothingToUndoError
 
 import RigUIControls as rig
 
@@ -433,11 +433,20 @@ class RigFaceSetup(QtGui.QMainWindow):
 
     def undoAction(self):
 
-        self.undoStack.undo()
+        try:
+            self.undoStack.undo()
+            self.messageLogger.clear()
+        except NothingToUndoError:
+            self.messageLogger.error("No more actions to undo")
+
 
     def redoAction(self):
 
-        self.undoStack.redo()
+        try:
+            self.undoStack.redo()
+            self.messageLogger.clear()
+        except NothingToRedoError:
+            self.messageLogger.error("No more actions to redo")
 
     def itemTest(self):
         """Random Test funciton to see if things get called"""

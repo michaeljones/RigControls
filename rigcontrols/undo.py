@@ -1,4 +1,12 @@
 
+class UndoStackError(Exception):
+    pass
+
+class NothingToUndoError(UndoStackError):
+    pass
+
+class NothingToRedoError(UndoStackError):
+    pass
 
 class Command(object):
     "Base class to provide NotImplemented warnings"
@@ -145,14 +153,22 @@ class UndoStack(object):
     def undo(self):
         "Undoes the last dispatched/pushed command"
 
-        command = self.history.pop()
+        try:
+            command = self.history.pop()
+        except IndexError:
+            raise NothingToUndoError()
+
         command.undo()
         self.future.append(command)
 
     def redo(self):
         "Redoes the last undone command"
 
-        command = self.future.pop()
+        try:
+            command = self.future.pop()
+        except IndexError:
+            raise NothingToRedoError()
+
         command.redo()
         self.history.append(command)
 
